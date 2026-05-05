@@ -592,9 +592,114 @@
     .footer { margin-top: 20px; }
     @page { margin: 0.5in; size: letter landscape; }
   }
+  /* ── PASSWORD GATE ── */
+  #pw-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pw-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 48px 44px;
+    width: 360px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+  }
+  .pw-logos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .pw-logos img { height: 22px; object-fit: contain; }
+  .pw-logos-divider { width: 1px; height: 20px; background: var(--border); }
+  .pw-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+  .pw-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+  .pw-input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: inherit;
+    margin-bottom: 12px;
+    letter-spacing: 0.08em;
+    text-align: center;
+    background: var(--surface);
+    color: var(--text-primary);
+    transition: border-color 0.15s;
+  }
+  .pw-input:focus { outline: none; border-color: var(--accent); }
+  .pw-input.shake {
+    animation: shake 0.35s ease;
+    border-color: var(--accent-red);
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .pw-error {
+    font-size: 11px;
+    color: var(--accent-red);
+    margin-bottom: 12px;
+    min-height: 16px;
+  }
+  .pw-btn {
+    width: 100%;
+    padding: 11px;
+    background: var(--brand-primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    transition: opacity 0.15s;
+  }
+  .pw-btn:hover { opacity: 0.85; }
 </style>
 </head>
 <body>
+
+<!-- ── PASSWORD GATE ── -->
+<div id="pw-gate">
+  <div class="pw-box">
+    <div class="pw-logos">
+      <img src="https://www.wallacebishop.com.au/cdn/shop/files/WB-LOGO_f6d8dbcc-0839-46fe-b4e3-200b9da8ca7e.png?v=1652139214&width=600" alt="Wallace Bishop">
+      <div class="pw-logos-divider"></div>
+      <svg width="18" height="20" viewBox="0 0 109 124" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M74.7 14.8c0 0-1.4 0.4-3.7 1.1c-0.4-1.3-1-2.8-1.8-4.4c-2.7-5.1-6.6-7.8-11.3-7.8c-0.3 0-0.7 0-1 0.1c-0.1-0.2-0.3-0.3-0.4-0.5c-2.1-2.2-4.7-3.3-7.9-3.2C41.4 0.3 34.2 6 30.5 15.1c-2.4 6.1-3.4 12.2-3.7 17.1c-6.8 2.1-11.6 3.6-11.7 3.6c-3.4 1.1-3.5 1.2-4 4.4c-0.3 2.4-9.1 70.1-9.1 70.1L75 124V14.3C75 14.5 74.8 14.6 74.7 14.8L74.7 14.8z" fill="#111111"/><path d="M75 124l33.1-8.3c0 0-14.3-96.8-14.4-97.4c-0.1-0.6-0.6-1-1.2-1c-0.5 0-10.1-0.2-10.1-0.2s-5.8-5.6-8-7.8L75 124z" fill="#111111"/></svg>
+      <span style="font-size:13px;font-weight:700;color:var(--brand-primary);">Shopify</span>
+    </div>
+    <div class="pw-title">POS Total Cost of Ownership</div>
+    <div class="pw-subtitle">This calculator is confidential.<br>Enter the access password to continue.</div>
+    <input type="password" class="pw-input" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkPassword()">
+    <div class="pw-error" id="pw-error"></div>
+    <button class="pw-btn" onclick="checkPassword()">Access Calculator</button>
+  </div>
+</div>
 
 <!-- ── HEADER ── -->
 <header class="header">
@@ -1187,6 +1292,31 @@
 </div>
 
 <script>
+// ── PASSWORD GATE ──
+(function() {
+  if (sessionStorage.getItem('pos_tco_auth') === '1') {
+    document.getElementById('pw-gate').style.display = 'none';
+  } else {
+    setTimeout(() => document.getElementById('pw-input').focus(), 50);
+  }
+})();
+
+function checkPassword() {
+  const input = document.getElementById('pw-input');
+  const errorEl = document.getElementById('pw-error');
+  if (input.value === 'hardybrothers') {
+    sessionStorage.setItem('pos_tco_auth', '1');
+    document.getElementById('pw-gate').style.display = 'none';
+  } else {
+    errorEl.textContent = 'Incorrect password. Please try again.';
+    input.value = '';
+    input.classList.remove('shake');
+    void input.offsetWidth;
+    input.classList.add('shake');
+    input.focus();
+  }
+}
+
 // ── VERSION MANAGER ──
 const VERSIONS_KEY = 'pos_tco_versions';
 const INPUT_IDS = [
