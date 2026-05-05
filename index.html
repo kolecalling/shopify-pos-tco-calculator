@@ -952,7 +952,7 @@
       </div>
 
       <div class="form-group" style="margin-top:12px;">
-        <label>Total Shopify Platform Costs</label>
+        <label>Shopify POS Platform Cost Only</label>
         <div style="padding:11px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:15px;font-weight:700;color:var(--text-primary)" id="total_platform_cost_display">$0</div>
       </div>
 
@@ -1519,8 +1519,7 @@ function updateCalc() {
   const storePlatformCost = storeGmv * (storeVpf / 100);
   document.getElementById('ecom_platform_cost_display').textContent = fmtFull(ecomPlatformCost);
   document.getElementById('store_platform_cost_display').textContent = fmtFull(storePlatformCost);
-  const totalPlatformCost = ecomPlatformCost + storePlatformCost;
-  document.getElementById('total_platform_cost_display').textContent = fmtFull(totalPlatformCost);
+  document.getElementById('total_platform_cost_display').textContent = fmtFull(storePlatformCost);
   const platformSavings = Math.max(0, (storeGmv * 0.0025) - (storeGmv * (storeVpf / 100)));
   document.getElementById('platform_savings_display').textContent = fmtFull(platformSavings);
 
