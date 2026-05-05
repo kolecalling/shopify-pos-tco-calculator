@@ -850,6 +850,63 @@
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-title">
+        <span class="card-title-icon">📈</span>
+        Revenue Upside
+      </div>
+
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">Adjust the benchmarks below to model your expected revenue upside from unified commerce. All figures are incremental to your current baseline.</div>
+
+      <div class="form-group">
+        <label>Unified Commerce GMV lift <span class="hint">% of in-store GMV</span></label>
+        <div class="input-prefix"><span>%</span>
+          <input type="number" id="rev_gmv_lift" value="8.9" min="0" step="0.1" onchange="updateCalc()" oninput="updateCalc()">
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Shopify avg. uplift from unified inventory, BOPIS, ship-from-store, and loyalty.</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>BOPIS adoption <span class="hint">% of eComm GMV</span></label>
+          <div class="input-prefix"><span>%</span>
+            <input type="number" id="rev_bopis_adoption" value="5" min="0" step="0.5" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>BOPIS AOV premium <span class="hint">%</span></label>
+          <div class="input-prefix"><span>%</span>
+            <input type="number" id="rev_bopis_aov" value="15" min="0" step="1" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:-10px;margin-bottom:16px;">Click & Collect orders typically carry a 13–20% higher AOV vs standard online orders.</div>
+
+      <div class="form-group">
+        <label>Lost sales recovery <span class="hint">% of in-store GMV</span></label>
+        <div class="input-prefix"><span>%</span>
+          <input type="number" id="rev_lost_sales" value="3" min="0" step="0.5" onchange="updateCalc()" oninput="updateCalc()">
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Ship-from-store & unified inventory reduce stockout-driven lost sales.</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cross-channel customers <span class="hint">% of base</span></label>
+          <div class="input-prefix"><span>%</span>
+            <input type="number" id="rev_cross_channel_pct" value="15" min="0" step="1" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>LTV premium <span class="hint">%</span></label>
+          <div class="input-prefix"><span>%</span>
+            <input type="number" id="rev_ltv_premium" value="25" min="0" step="1" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:-10px;">Cross-channel customers spend 20–30% more over their lifetime vs single-channel.</div>
+    </div>
+
     <div class="card" style="border:2px solid var(--brand-primary);">
       <div class="card-title" style="color:var(--brand-primary);">
         <span class="card-title-icon" style="background:var(--brand-primary);color:#fff;">🏷️</span>
@@ -884,21 +941,26 @@
   <div class="results-col">
 
     <!-- Summary Cards -->
-    <div class="summary-grid">
+    <div class="summary-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
       <div class="summary-card highlight">
         <div class="summary-label">3-Year Net Benefit</div>
         <div class="summary-value" id="out_3yr_net">$0</div>
         <div class="summary-sub" id="out_3yr_sub">vs. current setup</div>
       </div>
       <div class="summary-card">
-        <div class="summary-label">Year 1 Savings</div>
+        <div class="summary-label">Annual Cost Saving</div>
         <div class="summary-value positive" id="out_yr1_savings">$0</div>
         <div class="summary-sub" id="out_yr1_sub">cost reduction</div>
       </div>
       <div class="summary-card">
-        <div class="summary-label">GMV Uplift Opportunity</div>
+        <div class="summary-label">Annual Revenue Upside</div>
+        <div class="summary-value positive" id="out_rev_upside">$0</div>
+        <div class="summary-sub" id="out_rev_sub">across all factors</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">GMV Lift (in-store)</div>
         <div class="summary-value positive" id="out_gmv_uplift">$0</div>
-        <div class="summary-sub">+8.9% avg. uplift on in-store GMV</div>
+        <div class="summary-sub" id="out_gmv_sub">unified commerce uplift</div>
       </div>
     </div>
 
@@ -939,6 +1001,43 @@
         </thead>
         <tbody id="breakdown_body">
         </tbody>
+      </table>
+    </div>
+
+    <!-- Revenue Upside Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Revenue Upside — Annual</div>
+          <div class="chart-subtitle">Incremental revenue opportunity by unified commerce factor</div>
+        </div>
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background:#6EB69C"></span>Revenue uplift</span>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="revenueChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Revenue Upside Breakdown Table -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Revenue Upside — Breakdown</div>
+          <div class="chart-subtitle">Annual incremental revenue by factor</div>
+        </div>
+      </div>
+      <table class="breakdown-table">
+        <thead>
+          <tr>
+            <th>Revenue Factor</th>
+            <th>Assumption</th>
+            <th>Annual Uplift</th>
+            <th>3-Year Total</th>
+          </tr>
+        </thead>
+        <tbody id="revenue_breakdown_body"></tbody>
       </table>
     </div>
 
@@ -1090,7 +1189,7 @@ const vendorData = {
   }
 };
 
-let costChart, savingsChart;
+let costChart, savingsChart, revenueChart;
 
 function onVendorChange() {
   const vendor = document.getElementById('vendor').value;
@@ -1186,15 +1285,29 @@ function updateCalc() {
   const cumulativeYr2 = yr1Saving + yr2Saving;
   const cumulativeYr3 = yr1Saving + yr2Saving + yr3Saving;
 
-  // GMV uplift
-  const gmvUplift = storeGmv * 0.089;
-  const net3yr = cumulativeYr3 + (gmvUplift * 3);
+  // ── REVENUE UPSIDE ──
+  const gmvLiftPct = parseFloat(document.getElementById('rev_gmv_lift').value) || 0;
+  const bopisAdoption = parseFloat(document.getElementById('rev_bopis_adoption').value) || 0;
+  const bopisAov = parseFloat(document.getElementById('rev_bopis_aov').value) || 0;
+  const lostSalesPct = parseFloat(document.getElementById('rev_lost_sales').value) || 0;
+  const crossChannelPct = parseFloat(document.getElementById('rev_cross_channel_pct').value) || 0;
+  const ltvPremium = parseFloat(document.getElementById('rev_ltv_premium').value) || 0;
+
+  const revGmvLift = storeGmv * (gmvLiftPct / 100);
+  const revBopis = ecomGmv * (bopisAdoption / 100) * (bopisAov / 100);
+  const revLostSales = storeGmv * (lostSalesPct / 100);
+  const revCrossChannel = (ecomGmv + storeGmv) * (crossChannelPct / 100) * (ltvPremium / 100);
+  const totalRevUpside = revGmvLift + revBopis + revLostSales + revCrossChannel;
+  const gmvUplift = revGmvLift;
+
+  const net3yr = cumulativeYr3 + (totalRevUpside * 3);
 
   // ── UPDATE SUMMARY ──
   document.getElementById('out_3yr_net').textContent = fmt(net3yr);
-  document.getElementById('out_3yr_sub').textContent = `${fmt(cumulativeYr3)} savings + ${fmt(gmvUplift * 3)} GMV uplift`;
+  document.getElementById('out_3yr_sub').textContent = `${fmt(cumulativeYr3)} savings + ${fmt(totalRevUpside * 3)} revenue upside`;
   document.getElementById('out_yr1_savings').textContent = fmt(Math.max(0, yr1Saving));
   document.getElementById('out_yr1_sub').textContent = `after ${fmt(implCost + shopifyTraining + hardwareTotal)} upfront investment`;
+  document.getElementById('out_rev_upside').textContent = fmt(totalRevUpside);
   document.getElementById('out_gmv_uplift').textContent = fmt(gmvUplift);
 
   // Timeline
@@ -1263,9 +1376,39 @@ function updateCalc() {
   document.getElementById('summary_hardware_discount').textContent = fmtFull(hardwareDiscountAmount);
   document.getElementById('total_shopify_discount').textContent = fmtFull(totalDiscount);
 
+  // ── REVENUE BREAKDOWN TABLE ──
+  const revenueRows = [
+    ['Unified commerce GMV lift', `${gmvLiftPct}% of in-store GMV`, revGmvLift],
+    ['BOPIS / Click & Collect', `${bopisAdoption}% adoption × ${bopisAov}% AOV premium`, revBopis],
+    ['Lost sales recovery', `${lostSalesPct}% of in-store GMV`, revLostSales],
+    ['Cross-channel LTV uplift', `${crossChannelPct}% of customers × ${ltvPremium}% LTV premium`, revCrossChannel],
+  ];
+  const revTbody = document.getElementById('revenue_breakdown_body');
+  revTbody.innerHTML = '';
+  revenueRows.forEach(([label, assumption, value]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${label}</td>
+      <td style="color:var(--text-muted);font-size:11px;">${assumption}</td>
+      <td class="saving-cell">${fmtFull(value)}</td>
+      <td style="color:var(--text-secondary)">${fmtFull(value * 3)}</td>
+    `;
+    revTbody.appendChild(tr);
+  });
+  const revTotalRow = document.createElement('tr');
+  revTotalRow.className = 'total-row';
+  revTotalRow.innerHTML = `
+    <td>Total annual revenue upside</td>
+    <td></td>
+    <td class="saving-cell">${fmtFull(totalRevUpside)}</td>
+    <td>${fmtFull(totalRevUpside * 3)}</td>
+  `;
+  revTbody.appendChild(revTotalRow);
+
   // ── CHARTS ──
   updateCostChart(rows, totalCurr, totalShopify);
   updateSavingsChart(yr1Saving, yr2Saving, yr3Saving);
+  updateRevenueChart(revenueRows);
 }
 
 function updateCostChart(rows, totalCurr, totalShopify) {
@@ -1354,6 +1497,51 @@ function updateCostChart(rows, totalCurr, totalShopify) {
   });
 }
 
+function updateRevenueChart(rows) {
+  const ctx = document.getElementById('revenueChart').getContext('2d');
+  const labels = rows.map(r => r[0]);
+  const values = rows.map(r => r[2]);
+
+  if (revenueChart) revenueChart.destroy();
+  revenueChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Annual Revenue Upside',
+        data: values,
+        backgroundColor: 'rgba(110,182,156,0.85)',
+        borderColor: '#6EB69C',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (c) => ` $${Math.round(c.parsed.x).toLocaleString('en-AU')}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#ECECEC' },
+          ticks: { font: { size: 11 }, callback: (v) => '$' + (v >= 1000 ? Math.round(v/1000) + 'K' : v) }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
 function updateSavingsChart(yr1, yr2, yr3) {
   const ctx = document.getElementById('savingsChart').getContext('2d');
   const cumYr1 = yr1;
@@ -1423,6 +1611,12 @@ function resetForm() {
   document.getElementById('shopify_training').value = 1200;
   document.getElementById('it_support').value = 30000;
   document.getElementById('contract_remaining').value = 0;
+  document.getElementById('rev_gmv_lift').value = 8.9;
+  document.getElementById('rev_bopis_adoption').value = 5;
+  document.getElementById('rev_bopis_aov').value = 15;
+  document.getElementById('rev_lost_sales').value = 3;
+  document.getElementById('rev_cross_channel_pct').value = 15;
+  document.getElementById('rev_ltv_premium').value = 25;
   onVendorChange();
 }
 
