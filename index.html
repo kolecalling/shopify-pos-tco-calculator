@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopify POS — Total Cost of Ownership Calculator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --shopify-green: #004C3F;
+    --shopify-green-light: #008060;
+    --shopify-green-bg: #EBF5F3;
+    --shopify-green-mid: #1A9B7B;
+    --surface: #FFFFFF;
+    --surface-2: #F6F6F7;
+    --surface-3: #F1F2F3;
+    --border: #E3E3E3;
+    --text-primary: #1A1A1A;
+    --text-secondary: #616161;
+    --text-muted: #8C8C8C;
+    --accent-red: #DE3618;
+    --accent-orange: #F49342;
+    --accent-blue: #0070F3;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--surface-2);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--shopify-green);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .shopify-logo {
+    width: 32px;
+    height: 36px;
+    fill: #ffffff;
+  }
+  .header-title {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .header-subtitle {
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+    margin-top: 1px;
+  }
+  .header-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary {
+    background: #ffffff;
+    color: var(--shopify-green);
+  }
+  .btn-primary:hover { background: #f0f0f0; }
+  .btn-ghost {
+    background: rgba(255,255,255,0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.25);
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.20); }
+
+  /* ── HERO BAND ── */
+  .hero-band {
+    background: linear-gradient(135deg, var(--shopify-green) 0%, #006B55 100%);
+    padding: 32px 40px;
+    color: #ffffff;
+  }
+  .hero-band h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 6px;
+  }
+  .hero-band p {
+    color: rgba(255,255,255,0.72);
+    font-size: 14px;
+    max-width: 560px;
+  }
+  .hero-stats {
+    display: flex;
+    gap: 32px;
+    margin-top: 24px;
+  }
+  .hero-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .hero-stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .hero-stat-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .hero-stat-source {
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 1px;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 40px 60px;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .card + .card { margin-top: 16px; }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title-icon {
+    width: 18px;
+    height: 18px;
+    background: var(--shopify-green-bg);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--shopify-green);
+    font-size: 11px;
+  }
+
+  /* ── FORM ELEMENTS ── */
+  .form-group {
+    margin-bottom: 18px;
+  }
+  .form-group:last-child { margin-bottom: 0; }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  label .hint {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-left: 4px;
+  }
+  input[type="number"],
+  input[type="text"],
+  select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--surface);
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23616161' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--shopify-green-light);
+    box-shadow: 0 0 0 3px rgba(0, 128, 96, 0.12);
+  }
+  .input-prefix {
+    position: relative;
+  }
+  .input-prefix span {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 13px;
+    pointer-events: none;
+  }
+  .input-prefix input {
+    padding-left: 26px;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .form-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+  .vendor-defaults-note {
+    background: var(--shopify-green-bg);
+    border: 1px solid #C9E8E0;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--shopify-green);
+    margin-top: 10px;
+    display: none;
+  }
+
+  /* ── RESULTS COLUMN ── */
+  .results-col {
+    min-width: 0;
+  }
+
+  /* ── SUMMARY CARDS ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+  }
+  .summary-card.highlight {
+    background: var(--shopify-green);
+    border-color: var(--shopify-green);
+  }
+  .summary-card.highlight .summary-label { color: rgba(255,255,255,0.65); }
+  .summary-card.highlight .summary-value { color: #ffffff; }
+  .summary-card.highlight .summary-sub { color: rgba(255,255,255,0.55); }
+  .summary-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  .summary-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .summary-value.positive { color: var(--shopify-green-light); }
+  .summary-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* ── CHART CARDS ── */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 16px;
+  }
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .chart-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .chart-wrap {
+    position: relative;
+    height: 220px;
+  }
+
+  /* ── BREAKDOWN TABLE ── */
+  .breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .breakdown-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .breakdown-table th:not(:first-child) { text-align: right; }
+  .breakdown-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--surface-3);
+    color: var(--text-primary);
+  }
+  .breakdown-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  .breakdown-table tr:last-child td { border-bottom: none; }
+  .breakdown-table .total-row td {
+    font-weight: 700;
+    background: var(--surface-2);
+    border-top: 2px solid var(--border);
+    border-bottom: none;
+  }
+  .saving-cell { color: var(--shopify-green-light); font-weight: 600; }
+  .cost-current { color: var(--accent-red); }
+  .badge-zero {
+    background: var(--shopify-green-bg);
+    color: var(--shopify-green);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── INSIGHTS SECTION ── */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .insight-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .insight-icon {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .insight-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .insight-body {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* ── ROI TIMELINE ── */
+  .roi-timeline {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    margin-top: 16px;
+  }
+  .timeline-years {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .timeline-year {
+    text-align: center;
+    padding: 16px;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+  .timeline-year-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .timeline-year-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--shopify-green-light);
+    letter-spacing: -0.02em;
+  }
+  .timeline-year-cumulative {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .payback-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--shopify-green-bg);
+    color: var(--shopify-green);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-top: 16px;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: var(--shopify-green);
+    color: rgba(255,255,255,0.55);
+    text-align: center;
+    padding: 20px 40px;
+    font-size: 11px;
+    line-height: 1.6;
+    margin-top: 40px;
+  }
+  .footer a { color: rgba(255,255,255,0.7); text-decoration: none; }
+
+  /* ── PRINT STYLES ── */
+  @media print {
+    body { background: #fff; }
+    .header { position: static; background: var(--shopify-green) !important; }
+    .header-actions { display: none; }
+    .hero-band { break-inside: avoid; }
+    .main { grid-template-columns: 1fr; max-width: 100%; padding: 20px; }
+    .inputs-col { display: none; }
+    .card, .chart-card, .insight-card, .roi-timeline { break-inside: avoid; }
+    .summary-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .chart-wrap { height: 180px; }
+    .footer { margin-top: 20px; }
+    @page {
+      margin: 0.5in;
+      size: letter landscape;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div class="header-brand">
+    <svg class="shopify-logo" viewBox="0 0 109 124" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M74.7 14.8c0 0-1.4 0.4-3.7 1.1c-0.4-1.3-1-2.8-1.8-4.4c-2.7-5.1-6.6-7.8-11.3-7.8c-0.3 0-0.7 0-1 0.1c-0.1-0.2-0.3-0.3-0.4-0.5c-2.1-2.2-4.7-3.3-7.9-3.2C41.4 0.3 34.2 6 30.5 15.1c-2.4 6.1-3.4 12.2-3.7 17.1c-6.8 2.1-11.6 3.6-11.7 3.6c-3.4 1.1-3.5 1.2-4 4.4c-0.3 2.4-9.1 70.1-9.1 70.1L75 124V14.3C75 14.5 74.8 14.6 74.7 14.8L74.7 14.8z" fill="white"/>
+      <path d="M75 124l33.1-8.3c0 0-14.3-96.8-14.4-97.4c-0.1-0.6-0.6-1-1.2-1c-0.5 0-10.1-0.2-10.1-0.2s-5.8-5.6-8-7.8L75 124z" fill="white"/>
+    </svg>
+    <div>
+      <div class="header-title">Shopify POS</div>
+      <div class="header-subtitle">Total Cost of Ownership Calculator</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="resetForm()">
+      <span>↺</span> Reset
+    </button>
+    <button class="btn btn-primary" onclick="window.print()">
+      <span>⬇</span> Export PDF
+    </button>
+  </div>
+</header>
+
+<!-- ── HERO BAND ── -->
+<div class="hero-band">
+  <h1>How much could you save switching to Shopify POS?</h1>
+  <p>Built for existing Shopify Plus merchants. See your real 3-year savings from consolidating your ecommerce and in-store systems on one unified platform.</p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-value">8.9%</div>
+      <div class="hero-stat-label">Average GMV Uplift</div>
+      <div class="hero-stat-source">Shopify Merchant Research</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-value">89%</div>
+      <div class="hero-stat-label">Lower Support Costs</div>
+      <div class="hero-stat-source">vs. third-party POS vendors</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-value">16%</div>
+      <div class="hero-stat-label">Lower Ongoing Costs</div>
+      <div class="hero-stat-source">vs. standalone POS systems</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-value">21%</div>
+      <div class="hero-stat-label">Lower Training Costs</div>
+      <div class="hero-stat-source">per store, vs. competitors</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- ── INPUTS ── -->
+  <div class="inputs-col">
+    <div class="card">
+      <div class="card-title">
+        <span class="card-title-icon">🏪</span>
+        Your Business
+      </div>
+
+      <div class="form-group">
+        <label>Industry / Vertical</label>
+        <select id="industry" onchange="updateCalc()">
+          <option value="fashion">Fashion & Apparel</option>
+          <option value="homeware">Homeware & Furniture</option>
+          <option value="beauty">Beauty & Health</option>
+          <option value="electronics">Electronics & Tech</option>
+          <option value="sporting">Sporting Goods</option>
+          <option value="food">Food & Beverage</option>
+          <option value="other">Other Retail</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Number of retail locations</label>
+        <input type="number" id="num_locations" value="3" min="1" max="500" onchange="updateCalc()" oninput="updateCalc()">
+      </div>
+
+      <div class="form-group">
+        <label>Staff per location <span class="hint">(avg)</span></label>
+        <input type="number" id="staff_per_store" value="5" min="1" max="200" onchange="updateCalc()" oninput="updateCalc()">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span class="card-title-icon">💳</span>
+        Current POS Investment
+      </div>
+
+      <div class="form-group">
+        <label>Current POS vendor</label>
+        <select id="vendor" onchange="onVendorChange()">
+          <option value="lightspeed">Lightspeed / Vend</option>
+          <option value="square">Square for Retail</option>
+          <option value="myob">MYOB Advanced Retail</option>
+          <option value="aptos">Aptos</option>
+          <option value="newstore">NewStore</option>
+          <option value="teamwork">Teamwork Commerce</option>
+          <option value="retail_pro">Retail Pro</option>
+          <option value="kwi">KWI</option>
+          <option value="other">Other / Custom</option>
+        </select>
+        <div class="vendor-defaults-note" id="vendor_note"></div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Annual POS cost <span class="hint">(AUD)</span></label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="pos_cost_per_store" value="9000" min="0" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Annual integration <span class="hint">(AUD)</span></label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="middleware_cost" value="4560" min="0" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Annual IT / support cost <span class="hint">(total)</span></label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="it_support" value="30000" min="0" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Annual training cost <span class="hint">(AUD)</span></label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="training_per_store" value="4500" min="0" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+      </div>
+
+      <hr class="form-divider">
+
+      <div class="form-group">
+        <label>Contract term remaining <span class="hint">(months)</span></label>
+        <input type="number" id="contract_remaining" value="0" min="0" max="60" onchange="updateCalc()" oninput="updateCalc()">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span class="card-title-icon">🛒</span>
+        Shopify POS Set Up
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Implementation cost <span class="hint">(one-off)</span></label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="implementation_cost" value="5000" min="0" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Annual training cost <span class="hint">(AUD)</span></label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="shopify_training" value="1200" min="0" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Annual IT / Support costs</label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="shopify_it_support" value="3300" min="0" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">Typically ~89% lower than your current IT/support spend.</div>
+        </div>
+        <div class="form-group">
+          <label>Annual integration costs</label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="shopify_integration" value="0" min="0" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">$0 for existing Plus merchants — ecom and POS share one platform.</div>
+        </div>
+      </div>
+
+      <div style="background:var(--shopify-green-bg);border:1px solid #C9E8E0;border-radius:6px;padding:12px;font-size:12px;color:var(--shopify-green);margin-top:4px;">
+        <strong>Already on Shopify Plus?</strong> Your ecommerce and POS share the same admin, inventory, customer records, and reporting — no middleware required.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span class="card-title-icon">📈</span>
+        Shopify Platform Investment
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Annual eCommerce GMV <span class="hint">(AUD)</span></label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="ecom_gmv" value="5000000" min="0" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Annual in-store GMV <span class="hint">(AUD)</span></label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="store_gmv" value="2000000" min="0" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>eCommerce D2C VPF <span class="hint">(%)</span></label>
+          <div class="input-prefix"><span>%</span>
+            <input type="number" id="ecom_vpf" value="0.25" min="0" step="0.01" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>In-store VPF <span class="hint">(%)</span></label>
+          <div class="input-prefix"><span>%</span>
+            <input type="number" id="store_vpf" value="0.20" min="0" step="0.01" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+      </div>
+
+      <hr class="form-divider">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Annual eCommerce Platform Cost</label>
+          <div style="padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;color:var(--text-primary)" id="ecom_platform_cost_display">$0</div>
+        </div>
+        <div class="form-group">
+          <label>Annual In-store Platform Cost</label>
+          <div style="padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;color:var(--text-primary)" id="store_platform_cost_display">$0</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:12px;">
+        <label>Total Shopify Platform Costs</label>
+        <div style="padding:11px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:15px;font-weight:700;color:var(--text-primary)" id="total_platform_cost_display">$0</div>
+      </div>
+
+      <div class="form-group" style="margin-top:8px;">
+        <label>Total Savings <span class="hint">vs. standard retail VPF (0.25%)</span></label>
+        <div style="padding:11px 14px;background:var(--shopify-green);border-radius:6px;font-size:15px;font-weight:700;color:#ffffff" id="platform_savings_display">$0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span class="card-title-icon">💰</span>
+        Shopify Payments Investment
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Current blended rate <span class="hint">(%)</span></label>
+          <div class="input-prefix"><span>%</span>
+            <input type="number" id="current_payments_rate" value="1.75" min="0" step="0.01" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Shopify Payments blended rate <span class="hint">(%)</span></label>
+          <div class="input-prefix"><span>%</span>
+            <input type="number" id="shopify_payments_rate" value="1.40" min="0" step="0.01" onchange="updateCalc()" oninput="updateCalc()">
+          </div>
+        </div>
+      </div>
+
+      <hr class="form-divider">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Current payment investment</label>
+          <div style="padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;color:var(--text-primary)" id="current_payments_display">$0</div>
+        </div>
+        <div class="form-group">
+          <label>Shopify Payments investment</label>
+          <div style="padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;color:var(--shopify-green-light)" id="shopify_payments_display">$0</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:8px;">
+        <label>Total Savings <span class="hint">vs. standard rate (+0.25%)</span></label>
+        <div style="padding:11px 14px;background:var(--shopify-green);border-radius:6px;font-size:15px;font-weight:700;color:#ffffff" id="payments_savings_display">$0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span class="card-title-icon">🖥️</span>
+        POS Hardware Investment
+      </div>
+
+      <div class="form-group">
+        <label>Total Hardware Cost <span class="hint">(AUD)</span></label>
+        <div class="input-prefix"><span>$</span>
+          <input type="number" id="hardware_cost" value="2500" min="0" onchange="updateCalc()" oninput="updateCalc()">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Discount <span class="hint">(%)</span></label>
+        <div class="input-prefix"><span>%</span>
+          <input type="number" id="hardware_discount" value="0" min="0" max="100" step="1" onchange="updateCalc()" oninput="updateCalc()">
+        </div>
+      </div>
+
+      <hr class="form-divider">
+
+      <div class="form-group">
+        <label>Total Hardware Investment</label>
+        <div style="padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:700;color:var(--text-primary)" id="hardware_total_display">$0</div>
+      </div>
+    </div>
+
+    <div class="card" style="border:2px solid var(--shopify-green);">
+      <div class="card-title" style="color:var(--shopify-green);">
+        <span class="card-title-icon" style="background:var(--shopify-green);color:#fff;">🏷️</span>
+        Total Shopify Discount
+      </div>
+
+      <div class="form-group">
+        <label>Platform Investment Savings</label>
+        <div style="padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;color:var(--shopify-green-light)" id="summary_platform_savings">$0</div>
+      </div>
+
+      <div class="form-group">
+        <label>Payments Savings</label>
+        <div style="padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;color:var(--shopify-green-light)" id="summary_payments_savings">$0</div>
+      </div>
+
+      <div class="form-group">
+        <label>Hardware Discount</label>
+        <div style="padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;color:var(--shopify-green-light)" id="summary_hardware_discount">$0</div>
+      </div>
+
+      <hr class="form-divider">
+
+      <div class="form-group">
+        <label style="font-size:13px;font-weight:700;">Total Annual Shopify Discount</label>
+        <div style="padding:14px 16px;background:var(--shopify-green);border-radius:8px;font-size:18px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;" id="total_shopify_discount">$0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESULTS ── -->
+  <div class="results-col">
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+      <div class="summary-card highlight">
+        <div class="summary-label">3-Year Net Benefit</div>
+        <div class="summary-value" id="out_3yr_net">$0</div>
+        <div class="summary-sub" id="out_3yr_sub">vs. current setup</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Year 1 Savings</div>
+        <div class="summary-value positive" id="out_yr1_savings">$0</div>
+        <div class="summary-sub" id="out_yr1_sub">cost reduction</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">GMV Uplift Opportunity</div>
+        <div class="summary-value positive" id="out_gmv_uplift">$0</div>
+        <div class="summary-sub">+8.9% avg. uplift on in-store GMV</div>
+      </div>
+    </div>
+
+    <!-- Annual Cost Comparison Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Annual Cost Breakdown</div>
+          <div class="chart-subtitle">Current POS setup vs. Shopify POS (Year 1)</div>
+        </div>
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background:#DE3618"></span>Current</span>
+          <span><span class="legend-dot" style="background:#008060"></span>Shopify POS</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="costCompareChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Breakdown Table -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Cost Breakdown — Annual</div>
+          <div class="chart-subtitle">Line-by-line comparison across all locations</div>
+        </div>
+      </div>
+      <table class="breakdown-table">
+        <thead>
+          <tr>
+            <th>Cost Category</th>
+            <th>Current (p.a.)</th>
+            <th>Shopify POS (p.a.)</th>
+            <th>Annual Saving</th>
+          </tr>
+        </thead>
+        <tbody id="breakdown_body">
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3-Year Savings Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">3-Year Cumulative Savings</div>
+          <div class="chart-subtitle">Cost savings only (excl. GMV uplift)</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="savingsChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ROI Timeline -->
+    <div class="roi-timeline">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Return on Investment Timeline</div>
+      <div style="font-size:12px;color:var(--text-muted);">Cumulative net savings including implementation costs and GMV uplift</div>
+      <div class="timeline-years">
+        <div class="timeline-year">
+          <div class="timeline-year-label">Year 1</div>
+          <div class="timeline-year-value" id="tl_yr1">$0</div>
+          <div class="timeline-year-cumulative" id="tl_yr1_inc">incl. implementation</div>
+        </div>
+        <div class="timeline-year">
+          <div class="timeline-year-label">Year 2</div>
+          <div class="timeline-year-value" id="tl_yr2">$0</div>
+          <div class="timeline-year-cumulative">cumulative</div>
+        </div>
+        <div class="timeline-year">
+          <div class="timeline-year-label">Year 3</div>
+          <div class="timeline-year-value" id="tl_yr3">$0</div>
+          <div class="timeline-year-cumulative">cumulative</div>
+        </div>
+      </div>
+      <div style="text-align:center">
+        <div class="payback-badge" id="payback_badge">⚡ Payback period: calculating...</div>
+      </div>
+    </div>
+
+    <!-- Insights -->
+    <div class="insights-grid">
+      <div class="insight-card">
+        <div class="insight-icon">🔗</div>
+        <div class="insight-title">Zero integration tax</div>
+        <div class="insight-body">As an existing Shopify Plus merchant, your ecom and POS share the same product catalogue, inventory, and customer data. No middleware, no sync errors, no integration spend.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">📊</div>
+        <div class="insight-title">Unified analytics</div>
+        <div class="insight-body">Single source of truth across all channels — online, in-store, and wholesale — in one admin. Eliminates the cost and latency of stitching together separate reporting systems.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🎓</div>
+        <div class="insight-title">Staff already trained</div>
+        <div class="insight-body">Your team already uses Shopify. Training costs are minimal — staff learn POS in hours, not weeks. Industry benchmarks show 21% lower training costs vs. standalone POS systems.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🚀</div>
+        <div class="insight-title">Unified commerce upside</div>
+        <div class="insight-body">Merchants who consolidate on Shopify see an average 8.9% GMV uplift from unified inventory, buy-online-pick-up-in-store, ship-from-store, and unified loyalty programmes.</div>
+      </div>
+    </div>
+
+  </div><!-- /results-col -->
+</div><!-- /main -->
+
+<div class="footer">
+  <p>Prepared by Shopify · <a href="mailto:kohulen.mahan@shopify.com">Kole Mahan, Account Executive ANZ</a></p>
+  <p style="margin-top:4px;">Benchmarks sourced from Shopify merchant research. All figures in AUD. This calculator provides indicative estimates — actual savings will vary based on your current contracts and usage. Contact your Shopify account team for a detailed proposal.</p>
+</div>
+
+<script>
+// ── VENDOR DEFAULTS ──
+const vendorData = {
+  lightspeed: {
+    name: 'Lightspeed / Vend',
+    pos_cost: 3000,
+    middleware: 4560,
+    it_factor: 1.0,
+    training: 1600,
+    note: 'Lightspeed Retail: ~$169–399 USD/month per location (~$2,000–5,800 AUD/year). Middleware (e.g. SKULabs, Brightpearl, or custom API) typically $2,400–6,000/year per store for Shopify sync.'
+  },
+  square: {
+    name: 'Square for Retail',
+    pos_cost: 1560,
+    middleware: 3480,
+    it_factor: 0.85,
+    training: 1200,
+    note: 'Square Retail Plus: ~$89 USD/month (~$1,560 AUD/year) + transaction fees. Shopify integration via third-party connector typically $1,800–4,200/year per store.'
+  },
+  myob: {
+    name: 'MYOB Advanced Retail',
+    pos_cost: 4200,
+    middleware: 5040,
+    it_factor: 1.2,
+    training: 2200,
+    note: 'MYOB Advanced Retail: typically $2,400–5,400 AUD/year per location. Custom integration to Shopify ecom commonly $3,600–6,000/year per store.'
+  },
+  aptos: {
+    name: 'Aptos',
+    pos_cost: 7800,
+    middleware: 6600,
+    it_factor: 1.5,
+    training: 3500,
+    note: 'Aptos enterprise POS: typically $60,000–180,000 AUD/year for mid-market deployments. Integration to ecommerce platforms requires significant custom middleware investment.'
+  },
+  newstore: {
+    name: 'NewStore',
+    pos_cost: 9000,
+    middleware: 7200,
+    it_factor: 1.6,
+    training: 3200,
+    note: 'NewStore enterprise: typically $72,000–216,000 AUD/year depending on location count and feature set. External ecom integration through custom APIs.'
+  },
+  teamwork: {
+    name: 'Teamwork Commerce',
+    pos_cost: 6240,
+    middleware: 5760,
+    it_factor: 1.3,
+    training: 2800,
+    note: 'Teamwork Commerce: mid-to-enterprise pricing, typically $4,800–8,400/year per location. API integration to Shopify ecom requires custom development or middleware.'
+  },
+  retail_pro: {
+    name: 'Retail Pro',
+    pos_cost: 5040,
+    middleware: 4560,
+    it_factor: 1.1,
+    training: 2000,
+    note: 'Retail Pro: ~$3,000–6,000 AUD/year per location for software license. Shopify integration typically via middleware such as Celigo, Boomi, or custom connectors.'
+  },
+  kwi: {
+    name: 'KWI',
+    pos_cost: 8160,
+    middleware: 6240,
+    it_factor: 1.4,
+    training: 3000,
+    note: 'KWI enterprise POS: typically $60,000–144,000 AUD/year for mid-market. Integration to separate ecommerce platform requires significant API/middleware investment.'
+  },
+  other: {
+    name: 'Custom / Other',
+    pos_cost: 3600,
+    middleware: 4800,
+    it_factor: 1.0,
+    training: 1800,
+    note: 'Adjust the cost fields above based on your current setup.'
+  }
+};
+
+let costChart, savingsChart;
+
+function onVendorChange() {
+  const vendor = document.getElementById('vendor').value;
+  const d = vendorData[vendor];
+  const locs = parseFloat(document.getElementById('num_locations').value) || 1;
+  document.getElementById('pos_cost_per_store').value = d.pos_cost * locs;
+  document.getElementById('middleware_cost').value = d.middleware * locs;
+  document.getElementById('training_per_store').value = d.training * locs;
+  // Pre-fill Shopify IT support as 11% of current (89% reduction benchmark)
+  const currItSupport = parseFloat(document.getElementById('it_support').value) || 30000;
+  document.getElementById('shopify_it_support').value = Math.round(currItSupport * 0.11);
+  const noteEl = document.getElementById('vendor_note');
+  noteEl.style.display = 'block';
+  noteEl.textContent = d.note;
+  updateCalc();
+}
+
+function fmt(n) {
+  if (Math.abs(n) >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
+  if (Math.abs(n) >= 1000) return '$' + Math.round(n/1000) + 'K';
+  return '$' + Math.round(n).toLocaleString();
+}
+
+function fmtFull(n) {
+  return '$' + Math.round(n).toLocaleString('en-AU');
+}
+
+function updateCalc() {
+  const locs = parseFloat(document.getElementById('num_locations').value) || 0;
+  const ecomGmv = parseFloat(document.getElementById('ecom_gmv').value) || 0;
+  const storeGmv = parseFloat(document.getElementById('store_gmv').value) || 0;
+  const ecomVpf = parseFloat(document.getElementById('ecom_vpf').value) || 0;
+  const storeVpf = parseFloat(document.getElementById('store_vpf').value) || 0;
+
+  const ecomPlatformCost = ecomGmv * (ecomVpf / 100);
+  const storePlatformCost = storeGmv * (storeVpf / 100);
+  document.getElementById('ecom_platform_cost_display').textContent = fmtFull(ecomPlatformCost);
+  document.getElementById('store_platform_cost_display').textContent = fmtFull(storePlatformCost);
+  const totalPlatformCost = ecomPlatformCost + storePlatformCost;
+  document.getElementById('total_platform_cost_display').textContent = fmtFull(totalPlatformCost);
+  const platformSavings = Math.max(0, (storeGmv * 0.0025) - (storeGmv * (storeVpf / 100)));
+  document.getElementById('platform_savings_display').textContent = fmtFull(platformSavings);
+
+  const currentPaymentsRate = parseFloat(document.getElementById('current_payments_rate').value) || 0;
+  const shopifyPaymentsRate = parseFloat(document.getElementById('shopify_payments_rate').value) || 0;
+  const currentPaymentsInvestment = storeGmv * (currentPaymentsRate / 100);
+  const shopifyPaymentsInvestment = storeGmv * (shopifyPaymentsRate / 100);
+  document.getElementById('current_payments_display').textContent = fmtFull(currentPaymentsInvestment);
+  document.getElementById('shopify_payments_display').textContent = fmtFull(shopifyPaymentsInvestment);
+  const paymentsSavings = Math.max(0, storeGmv * 0.0025);
+  document.getElementById('payments_savings_display').textContent = fmtFull(paymentsSavings);
+  const staffPerStore = parseFloat(document.getElementById('staff_per_store').value) || 0;
+
+  const posAnnual = parseFloat(document.getElementById('pos_cost_per_store').value) || 0;
+  const middlewareAnnual = parseFloat(document.getElementById('middleware_cost').value) || 0;
+  const itSupport = parseFloat(document.getElementById('it_support').value) || 0;
+  const trainingAnnual = parseFloat(document.getElementById('training_per_store').value) || 0;
+
+  const implCost = parseFloat(document.getElementById('implementation_cost').value) || 0;
+  const shopifyTraining = parseFloat(document.getElementById('shopify_training').value) || 0;
+  const shopifyItSupport = parseFloat(document.getElementById('shopify_it_support').value) || 0;
+  const shopifyIntegration = parseFloat(document.getElementById('shopify_integration').value) || 0;
+  const hardwareCostPerStore = parseFloat(document.getElementById('hardware_cost').value) || 0;
+  const hardwareDiscount = parseFloat(document.getElementById('hardware_discount').value) || 0;
+
+  // Hardware total
+  const hardwareGross = hardwareCostPerStore;
+  const hardwareDiscountAmount = hardwareGross * (hardwareDiscount / 100);
+  const hardwareTotal = hardwareGross - hardwareDiscountAmount;
+  document.getElementById('hardware_total_display').textContent = fmtFull(hardwareTotal);
+
+  // ── CURRENT COSTS (annual) ──
+  const currPos = posAnnual;
+  const currMiddleware = middlewareAnnual;
+  const currSupport = itSupport;
+  const currTrainingOngoing = trainingAnnual;
+  const currTotal = currPos + currMiddleware + currSupport + currTrainingOngoing;
+
+  // ── SHOPIFY POS COSTS (annual) ──
+  const shopifyPos = 0;
+  const shopifyMiddleware = shopifyIntegration;
+  const shopifySupport = shopifyItSupport;
+  const shopifyTrainingOngoing = shopifyTraining;
+  const shopifyTotal = shopifyPos + shopifyMiddleware + shopifySupport + shopifyTrainingOngoing;
+
+  // ── SAVINGS ──
+  const annualSaving = currTotal - shopifyTotal;
+  const yr1Saving = annualSaving - implCost - (shopifyTraining) - hardwareTotal; // net of upfront
+  const yr2Saving = annualSaving;
+  const yr3Saving = annualSaving;
+
+  const cumulativeYr1 = yr1Saving;
+  const cumulativeYr2 = yr1Saving + yr2Saving;
+  const cumulativeYr3 = yr1Saving + yr2Saving + yr3Saving;
+
+  // GMV uplift
+  const gmvUplift = storeGmv * 0.089;
+  const net3yr = cumulativeYr3 + (gmvUplift * 3);
+
+  // ── UPDATE SUMMARY ──
+  document.getElementById('out_3yr_net').textContent = fmt(net3yr);
+  document.getElementById('out_3yr_sub').textContent = `${fmt(cumulativeYr3)} savings + ${fmt(gmvUplift * 3)} GMV uplift`;
+  document.getElementById('out_yr1_savings').textContent = fmt(Math.max(0, yr1Saving));
+  document.getElementById('out_yr1_sub').textContent = `after ${fmt(implCost + shopifyTraining + hardwareTotal)} upfront investment`;
+  document.getElementById('out_gmv_uplift').textContent = fmt(gmvUplift);
+
+  // Timeline
+  document.getElementById('tl_yr1').textContent = fmt(cumulativeYr1);
+  document.getElementById('tl_yr2').textContent = fmt(cumulativeYr2);
+  document.getElementById('tl_yr3').textContent = fmt(cumulativeYr3);
+
+  // Payback period
+  const setupCost = implCost + (shopifyTraining) + hardwareTotal;
+  const monthlyRun = annualSaving / 12;
+  const paybackMonths = monthlyRun > 0 ? Math.ceil(setupCost / monthlyRun) : 999;
+  const pbEl = document.getElementById('payback_badge');
+  if (paybackMonths <= 0 || setupCost <= 0) {
+    pbEl.textContent = '⚡ Immediate ROI — savings begin day one';
+  } else if (paybackMonths <= 3) {
+    pbEl.textContent = `⚡ Payback period: ${paybackMonths} month${paybackMonths === 1 ? '' : 's'}`;
+  } else if (paybackMonths <= 12) {
+    pbEl.textContent = `⚡ Payback period: ${paybackMonths} months`;
+  } else if (paybackMonths <= 999) {
+    const yrs = (paybackMonths / 12).toFixed(1);
+    pbEl.textContent = `⚡ Payback period: ${yrs} years`;
+  } else {
+    pbEl.textContent = '⚠ Check inputs — savings may not cover setup';
+  }
+
+  // ── BREAKDOWN TABLE ──
+  const rows = [
+    ['POS Platform', currPos, storePlatformCost],
+    ['Integration / middleware', currMiddleware, shopifyIntegration, shopifyIntegration === 0],
+    ['IT & support', currSupport, shopifySupport],
+    ['Staff training (ongoing)', currTrainingOngoing, shopifyTrainingOngoing],
+    ['Payments', currentPaymentsInvestment, shopifyPaymentsInvestment],
+    ['Hardware (one-off)', 0, hardwareTotal],
+  ];
+  const tbody = document.getElementById('breakdown_body');
+  tbody.innerHTML = '';
+  let totalCurr = 0, totalShopify = 0;
+  rows.forEach(([label, curr, shopify, isZero]) => {
+    totalCurr += curr;
+    totalShopify += shopify;
+    const saving = curr - shopify;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${label}</td>
+      <td class="cost-current">${fmtFull(curr)}</td>
+      <td>${isZero ? '<span class="badge-zero">ZERO</span>' : fmtFull(shopify)}</td>
+      <td class="saving-cell">${saving >= 0 ? '+' : ''}${fmtFull(saving)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  const totalSaving = totalCurr - totalShopify;
+  const tfr = document.createElement('tr');
+  tfr.className = 'total-row';
+  tfr.innerHTML = `
+    <td>Total annual</td>
+    <td>${fmtFull(totalCurr)}</td>
+    <td>${fmtFull(totalShopify)}</td>
+    <td class="saving-cell">${totalSaving >= 0 ? '+' : ''}${fmtFull(totalSaving)}</td>
+  `;
+  tbody.appendChild(tfr);
+
+  // ── TOTAL SHOPIFY DISCOUNT ──
+  const totalDiscount = platformSavings + paymentsSavings + hardwareDiscountAmount;
+  document.getElementById('summary_platform_savings').textContent = fmtFull(platformSavings);
+  document.getElementById('summary_payments_savings').textContent = fmtFull(paymentsSavings);
+  document.getElementById('summary_hardware_discount').textContent = fmtFull(hardwareDiscountAmount);
+  document.getElementById('total_shopify_discount').textContent = fmtFull(totalDiscount);
+
+  // ── CHARTS ──
+  updateCostChart(currPos, currMiddleware, currSupport, currTrainingOngoing, shopifyPos, shopifySupport, shopifyTrainingOngoing);
+  updateSavingsChart(yr1Saving, yr2Saving, yr3Saving);
+}
+
+function updateCostChart(currPos, currMid, currSup, currTrain, shopPos, shopSup, shopTrain) {
+  const ctx = document.getElementById('costCompareChart').getContext('2d');
+  const data = {
+    labels: ['Licensing', 'Integration / Middleware', 'IT & Support', 'Training'],
+    datasets: [
+      {
+        label: 'Current POS',
+        data: [currPos, currMid, currSup, currTrain],
+        backgroundColor: 'rgba(222, 54, 24, 0.8)',
+        borderColor: '#DE3618',
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+      {
+        label: 'Shopify POS',
+        data: [shopPos, 0, shopSup, shopTrain],
+        backgroundColor: 'rgba(0, 128, 96, 0.8)',
+        borderColor: '#008060',
+        borderWidth: 1,
+        borderRadius: 4,
+      }
+    ]
+  };
+  if (costChart) costChart.destroy();
+  costChart = new Chart(ctx, {
+    type: 'bar',
+    data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.dataset.label}: $${Math.round(ctx.parsed.y).toLocaleString('en-AU')}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          ticks: {
+            font: { size: 11 },
+            callback: (v) => '$' + (v >= 1000 ? Math.round(v/1000) + 'K' : v)
+          },
+          grid: { color: '#F1F2F3' }
+        }
+      }
+    }
+  });
+}
+
+function updateSavingsChart(yr1, yr2, yr3) {
+  const ctx = document.getElementById('savingsChart').getContext('2d');
+  const cumYr1 = yr1;
+  const cumYr2 = yr1 + yr2;
+  const cumYr3 = yr1 + yr2 + yr3;
+  const data = {
+    labels: ['Year 1', 'Year 2', 'Year 3'],
+    datasets: [{
+      label: 'Cumulative savings',
+      data: [cumYr1, cumYr2, cumYr3],
+      backgroundColor: (ctx) => {
+        const v = ctx.parsed?.y ?? 0;
+        return v >= 0 ? 'rgba(0, 128, 96, 0.8)' : 'rgba(222, 54, 24, 0.8)';
+      },
+      borderColor: (ctx) => {
+        const v = ctx.parsed?.y ?? 0;
+        return v >= 0 ? '#008060' : '#DE3618';
+      },
+      borderWidth: 1,
+      borderRadius: 6,
+    }]
+  };
+  if (savingsChart) savingsChart.destroy();
+  savingsChart = new Chart(ctx, {
+    type: 'bar',
+    data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` Cumulative: $${Math.round(ctx.parsed.y).toLocaleString('en-AU')}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+        y: {
+          ticks: {
+            font: { size: 11 },
+            callback: (v) => '$' + (Math.abs(v) >= 1000 ? Math.round(v/1000) + 'K' : v)
+          },
+          grid: { color: '#F1F2F3' }
+        }
+      }
+    }
+  });
+}
+
+function resetForm() {
+  document.getElementById('num_locations').value = 3;
+  document.getElementById('ecom_gmv').value = 5000000;
+  document.getElementById('store_gmv').value = 2000000;
+  document.getElementById('ecom_vpf').value = 0.25;
+  document.getElementById('store_vpf').value = 0.20;
+  document.getElementById('shopify_it_support').value = 3300;
+  document.getElementById('shopify_integration').value = 0;
+  document.getElementById('current_payments_rate').value = 1.75;
+  document.getElementById('shopify_payments_rate').value = 1.40;
+  document.getElementById('hardware_cost').value = 2500;
+  document.getElementById('hardware_discount').value = 0;
+  document.getElementById('staff_per_store').value = 5;
+  document.getElementById('vendor').value = 'lightspeed';
+  document.getElementById('implementation_cost').value = 5000;
+  document.getElementById('shopify_training').value = 1200;
+  document.getElementById('it_support').value = 30000;
+  document.getElementById('contract_remaining').value = 0;
+  onVendorChange();
+}
+
+// ── INIT ──
+onVendorChange();
+</script>
+</body>
+</html>
