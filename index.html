@@ -1166,7 +1166,7 @@
       <div class="chart-header">
         <div>
           <div class="chart-title">Cost Breakdown — Annual</div>
-          <div class="chart-subtitle">Line-by-line comparison across all locations</div>
+          <div class="chart-subtitle">Line-by-line comparison</div>
         </div>
       </div>
       <table class="breakdown-table">
@@ -1220,12 +1220,16 @@
       </table>
     </div>
 
-    <!-- 3-Year Savings Chart -->
+    <!-- 3-Year Benefit Chart -->
     <div class="chart-card">
       <div class="chart-header">
         <div>
-          <div class="chart-title">3-Year Cumulative Savings</div>
-          <div class="chart-subtitle">Cost savings only (excl. GMV uplift)</div>
+          <div class="chart-title">3-Year Cumulative Benefit</div>
+          <div class="chart-subtitle">Cost savings + revenue upside, cumulative</div>
+        </div>
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background:#111111"></span>Cost savings</span>
+          <span><span class="legend-dot" style="background:#6EB69C"></span>Revenue upside</span>
         </div>
       </div>
       <div class="chart-wrap">
@@ -1696,7 +1700,7 @@ function updateCalc() {
 
   // ── CHARTS ──
   updateCostChart(rows, totalCurr, totalShopify);
-  updateSavingsChart(yr1Saving, yr2Saving, yr3Saving);
+  updateSavingsChart(yr1Saving, yr2Saving, yr3Saving, totalRevUpside);
   updateRevenueChart(revenueRows);
 }
 
@@ -1812,32 +1816,41 @@ function updateRevenueChart(rows) {
   });
 }
 
-function updateSavingsChart(yr1, yr2, yr3) {
+function updateSavingsChart(yr1, yr2, yr3, revUpside) {
   const ctx = document.getElementById('savingsChart').getContext('2d');
-  const cumYr1 = yr1;
-  const cumYr2 = yr1 + yr2;
-  const cumYr3 = yr1 + yr2 + yr3;
-  const data = {
-    labels: ['Year 1', 'Year 2', 'Year 3'],
-    datasets: [{
-      label: 'Cumulative savings',
-      data: [cumYr1, cumYr2, cumYr3],
-      backgroundColor: (ctx) => {
-        const v = ctx.parsed?.y ?? 0;
-        return v >= 0 ? 'rgba(110, 182, 156, 0.8)' : 'rgba(196, 61, 42, 0.8)';
-      },
-      borderColor: (ctx) => {
-        const v = ctx.parsed?.y ?? 0;
-        return v >= 0 ? '#6EB69C' : '#C43D2A';
-      },
-      borderWidth: 1,
-      borderRadius: 6,
-    }]
-  };
+  const cumCost1 = yr1;
+  const cumCost2 = yr1 + yr2;
+  const cumCost3 = yr1 + yr2 + yr3;
+  const cumRev1 = revUpside;
+  const cumRev2 = revUpside * 2;
+  const cumRev3 = revUpside * 3;
+
   if (savingsChart) savingsChart.destroy();
   savingsChart = new Chart(ctx, {
     type: 'bar',
-    data,
+    data: {
+      labels: ['Year 1', 'Year 2', 'Year 3'],
+      datasets: [
+        {
+          label: 'Cost savings',
+          data: [cumCost1, cumCost2, cumCost3],
+          backgroundColor: 'rgba(17,17,17,0.80)',
+          borderColor: '#111111',
+          borderWidth: 1,
+          borderRadius: 3,
+          stack: 'benefit',
+        },
+        {
+          label: 'Revenue upside',
+          data: [cumRev1, cumRev2, cumRev3],
+          backgroundColor: 'rgba(110,182,156,0.85)',
+          borderColor: '#6EB69C',
+          borderWidth: 1,
+          borderRadius: 3,
+          stack: 'benefit',
+        }
+      ]
+    },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -1845,17 +1858,15 @@ function updateSavingsChart(yr1, yr2, yr3) {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (ctx) => ` Cumulative: $${Math.round(ctx.parsed.y).toLocaleString('en-AU')}`
+            label: (c) => ` ${c.dataset.label}: $${Math.round(c.parsed.y).toLocaleString('en-AU')}`
           }
         }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 12 } } },
         y: {
-          ticks: {
-            font: { size: 11 },
-            callback: (v) => '$' + (Math.abs(v) >= 1000 ? Math.round(v/1000) + 'K' : v)
-          },
+          stacked: true,
+          ticks: { font: { size: 11 }, callback: (v) => '$' + (Math.abs(v) >= 1000 ? Math.round(v/1000) + 'K' : v) },
           grid: { color: '#ECECEC' }
         }
       }
