@@ -910,11 +910,12 @@
           <div class="chart-subtitle">Current POS setup vs. Shopify POS (Year 1)</div>
         </div>
         <div class="chart-legend">
-          <span><span class="legend-dot" style="background:#111111"></span>Current</span>
-          <span><span class="legend-dot" style="background:#6EB69C"></span>Shopify POS</span>
+          <span><span class="legend-dot" style="background:#111111"></span>Current total</span>
+          <span><span class="legend-dot" style="background:#6EB69C"></span>Saving / Shopify total</span>
+          <span><span class="legend-dot" style="background:#C43D2A"></span>Added cost</span>
         </div>
       </div>
-      <div class="chart-wrap">
+      <div class="chart-wrap" style="height:280px;">
         <canvas id="costCompareChart"></canvas>
       </div>
     </div>
@@ -1263,55 +1264,89 @@ function updateCalc() {
   document.getElementById('total_shopify_discount').textContent = fmtFull(totalDiscount);
 
   // ── CHARTS ──
-  updateCostChart(currPos, currMiddleware, currSupport, currTrainingOngoing, shopifyPos, shopifySupport, shopifyTrainingOngoing);
+  updateCostChart(rows, totalCurr, totalShopify);
   updateSavingsChart(yr1Saving, yr2Saving, yr3Saving);
 }
 
-function updateCostChart(currPos, currMid, currSup, currTrain, shopPos, shopSup, shopTrain) {
+function updateCostChart(rows, totalCurr, totalShopify) {
   const ctx = document.getElementById('costCompareChart').getContext('2d');
-  const data = {
-    labels: ['Licensing', 'Integration / Middleware', 'IT & Support', 'Training'],
-    datasets: [
-      {
-        label: 'Current POS',
-        data: [currPos, currMid, currSup, currTrain],
-        backgroundColor: 'rgba(17, 17, 17, 0.85)',
-        borderColor: '#111111',
-        borderWidth: 1,
-        borderRadius: 3,
-      },
-      {
-        label: 'Shopify POS',
-        data: [shopPos, 0, shopSup, shopTrain],
-        backgroundColor: 'rgba(110, 182, 156, 0.8)',
-        borderColor: '#6EB69C',
-        borderWidth: 1,
-        borderRadius: 3,
-      }
-    ]
+
+  const shortLabel = {
+    'POS Platform': 'POS',
+    'Integration / middleware': 'Integration',
+    'IT & support': 'IT & Support',
+    'Staff training (ongoing)': 'Training',
+    'Payments': 'Payments',
+    'Hardware (one-off)': 'Hardware',
   };
+
+  const chartLabels = ['Current', ...rows.map(r => shortLabel[r[0]] || r[0]), 'Shopify'];
+  const bases = [], values = [], bgColors = [], bdColors = [];
+
+  // Starting bar — full charcoal bar
+  bases.push(0);
+  values.push(totalCurr);
+  bgColors.push('rgba(17,17,17,0.85)');
+  bdColors.push('#111111');
+
+  let running = totalCurr;
+  rows.forEach(([, curr, shopify]) => {
+    const saving = curr - shopify;
+    if (saving >= 0) {
+      bases.push(running - saving);
+      values.push(saving);
+      bgColors.push('rgba(110,182,156,0.85)');
+      bdColors.push('#6EB69C');
+    } else {
+      bases.push(running);
+      values.push(-saving);
+      bgColors.push('rgba(196,61,42,0.75)');
+      bdColors.push('#C43D2A');
+    }
+    running -= saving;
+  });
+
+  // Ending bar — full sage green bar
+  bases.push(0);
+  values.push(Math.max(0, totalShopify));
+  bgColors.push('rgba(110,182,156,0.85)');
+  bdColors.push('#6EB69C');
+
   if (costChart) costChart.destroy();
   costChart = new Chart(ctx, {
     type: 'bar',
-    data,
+    data: {
+      labels: chartLabels,
+      datasets: [
+        { label: '_base', data: bases, backgroundColor: 'transparent', borderColor: 'transparent', borderWidth: 0 },
+        { label: 'Amount', data: values, backgroundColor: bgColors, borderColor: bdColors, borderWidth: 1, borderRadius: 3 }
+      ]
+    },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: {
+          filter: (item) => item.datasetIndex !== 0,
           callbacks: {
-            label: (ctx) => ` ${ctx.dataset.label}: $${Math.round(ctx.parsed.y).toLocaleString('en-AU')}`
+            label: (c) => {
+              const i = c.dataIndex;
+              if (i === 0) return ` Current total: $${Math.round(totalCurr).toLocaleString('en-AU')}`;
+              if (i === chartLabels.length - 1) return ` Shopify total: $${Math.round(totalShopify).toLocaleString('en-AU')}`;
+              const saving = rows[i - 1][1] - rows[i - 1][2];
+              return saving >= 0
+                ? ` Saving: $${Math.round(saving).toLocaleString('en-AU')}`
+                : ` Added cost: $${Math.round(-saving).toLocaleString('en-AU')}`;
+            }
           }
         }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0 } },
         y: {
-          ticks: {
-            font: { size: 11 },
-            callback: (v) => '$' + (v >= 1000 ? Math.round(v/1000) + 'K' : v)
-          },
+          stacked: true,
+          ticks: { font: { size: 11 }, callback: (v) => '$' + (v >= 1000 ? Math.round(v/1000) + 'K' : v) },
           grid: { color: '#ECECEC' }
         }
       }
