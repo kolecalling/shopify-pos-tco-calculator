@@ -1556,14 +1556,13 @@ function updateCalc() {
   const currMiddleware = middlewareAnnual;
   const currSupport = itSupport;
   const currTrainingOngoing = trainingAnnual;
-  const currTotal = currPos + currMiddleware + currSupport + currTrainingOngoing;
+  const currTotal = currPos + currMiddleware + currSupport + currTrainingOngoing + currentPaymentsInvestment;
 
   // ── SHOPIFY POS COSTS (annual) ──
-  const shopifyPos = 0;
   const shopifyMiddleware = shopifyIntegration;
   const shopifySupport = shopifyItSupport;
   const shopifyTrainingOngoing = shopifyTraining;
-  const shopifyTotal = shopifyPos + shopifyMiddleware + shopifySupport + shopifyTrainingOngoing;
+  const shopifyTotal = storePlatformCost + shopifyMiddleware + shopifySupport + shopifyTrainingOngoing + shopifyPaymentsInvestment;
 
   // ── SAVINGS ──
   const annualSaving = currTotal - shopifyTotal;
