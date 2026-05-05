@@ -421,6 +421,67 @@
     letter-spacing: 0.02em;
   }
 
+  /* ── VERSIONS BAR ── */
+  .versions-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+  }
+  .versions-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    margin-right: 2px;
+  }
+  .versions-select {
+    flex: 1;
+    max-width: 280px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-family: inherit;
+    background: var(--surface);
+    color: var(--text-primary);
+  }
+  .versions-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 4px;
+  }
+  .version-name-input {
+    flex: 1;
+    max-width: 240px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-family: inherit;
+    background: var(--surface);
+    color: var(--text-primary);
+  }
+  .version-name-input:focus, .versions-select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .btn-sm {
+    padding: 5px 12px;
+    font-size: 11px;
+  }
+  .versions-saved-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
   /* ── INSIGHTS SECTION ── */
   .insights-grid {
     display: grid;
@@ -555,6 +616,20 @@
     <button class="btn btn-primary" onclick="window.print()">⬇ Export PDF</button>
   </div>
 </header>
+
+<!-- ── VERSIONS BAR ── -->
+<div class="versions-bar">
+  <span class="versions-label">Versions</span>
+  <select class="versions-select" id="versions_select">
+    <option value="">— No saved versions —</option>
+  </select>
+  <button class="btn btn-ghost btn-sm" onclick="loadSelectedVersion()">Load</button>
+  <button class="btn btn-ghost btn-sm" onclick="deleteSelectedVersion()">Delete</button>
+  <div class="versions-divider"></div>
+  <input type="text" class="version-name-input" id="version_name_input" placeholder="Name this version…">
+  <button class="btn btn-primary btn-sm" onclick="saveCurrentVersion()">Save</button>
+  <span class="versions-saved-count" id="versions_count"></span>
+</div>
 
 <!-- ── HERO BAND ── -->
 <div class="hero-band">
@@ -1112,6 +1187,93 @@
 </div>
 
 <script>
+// ── VERSION MANAGER ──
+const VERSIONS_KEY = 'pos_tco_versions';
+const INPUT_IDS = [
+  'industry', 'num_locations', 'staff_per_store',
+  'vendor', 'pos_cost_per_store', 'middleware_cost', 'it_support', 'training_per_store', 'contract_remaining',
+  'implementation_cost', 'shopify_training', 'shopify_it_support', 'shopify_integration',
+  'ecom_gmv', 'store_gmv', 'ecom_vpf', 'store_vpf',
+  'current_payments_rate', 'shopify_payments_rate',
+  'hardware_cost', 'hardware_discount',
+  'rev_gmv_lift', 'rev_bopis_adoption', 'rev_bopis_aov', 'rev_lost_sales', 'rev_cross_channel_pct', 'rev_ltv_premium'
+];
+
+function getVersions() {
+  try { return JSON.parse(localStorage.getItem(VERSIONS_KEY)) || []; }
+  catch { return []; }
+}
+
+function setVersions(versions) {
+  localStorage.setItem(VERSIONS_KEY, JSON.stringify(versions));
+}
+
+function captureInputs() {
+  const inputs = {};
+  INPUT_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) inputs[id] = el.value;
+  });
+  return inputs;
+}
+
+function restoreInputs(inputs) {
+  INPUT_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && inputs[id] !== undefined) el.value = inputs[id];
+  });
+}
+
+function saveCurrentVersion() {
+  const nameEl = document.getElementById('version_name_input');
+  const name = (nameEl.value || '').trim();
+  if (!name) { nameEl.focus(); nameEl.placeholder = 'Enter a name first…'; return; }
+  const versions = getVersions();
+  const existing = versions.findIndex(v => v.name === name);
+  const entry = { id: 'v_' + Date.now(), name, savedAt: new Date().toISOString(), inputs: captureInputs() };
+  if (existing >= 0) {
+    entry.id = versions[existing].id;
+    versions[existing] = entry;
+  } else {
+    versions.push(entry);
+  }
+  setVersions(versions);
+  nameEl.value = '';
+  nameEl.placeholder = 'Name this version…';
+  refreshVersionsUI(entry.id);
+}
+
+function loadSelectedVersion() {
+  const id = document.getElementById('versions_select').value;
+  if (!id) return;
+  const v = getVersions().find(v => v.id === id);
+  if (!v) return;
+  restoreInputs(v.inputs);
+  onVendorChange();
+}
+
+function deleteSelectedVersion() {
+  const id = document.getElementById('versions_select').value;
+  if (!id) return;
+  const versions = getVersions().filter(v => v.id !== id);
+  setVersions(versions);
+  refreshVersionsUI();
+}
+
+function refreshVersionsUI(selectId) {
+  const versions = getVersions();
+  const sel = document.getElementById('versions_select');
+  sel.innerHTML = versions.length
+    ? versions.map(v => {
+        const d = new Date(v.savedAt);
+        const label = `${v.name} — ${d.toLocaleDateString('en-AU', { day:'numeric', month:'short' })} ${d.toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' })}`;
+        return `<option value="${v.id}"${v.id === selectId ? ' selected' : ''}>${label}</option>`;
+      }).join('')
+    : '<option value="">— No saved versions —</option>';
+  const countEl = document.getElementById('versions_count');
+  countEl.textContent = versions.length ? `${versions.length} version${versions.length === 1 ? '' : 's'} saved` : '';
+}
+
 // ── VENDOR DEFAULTS ──
 const vendorData = {
   lightspeed: {
@@ -1601,6 +1763,7 @@ function resetForm() {
 }
 
 // ── INIT ──
+refreshVersionsUI();
 onVendorChange();
 </script>
 </body>
