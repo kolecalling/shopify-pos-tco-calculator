@@ -680,6 +680,79 @@
     transition: opacity 0.15s;
   }
   .pw-btn:hover { opacity: 0.85; }
+
+  /* ── INSTRUCTIONS OVERLAY ── */
+  #instructions-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(17,17,17,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .instructions-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 44px 48px;
+    width: 540px;
+    max-width: 92vw;
+    box-shadow: var(--shadow-lg);
+  }
+  .instructions-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  .instructions-body {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .instructions-body p { margin-bottom: 14px; }
+  .instructions-body p:last-child { margin-bottom: 0; }
+  .instructions-list {
+    margin: 12px 0 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .instructions-list li {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--surface-3);
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 10px;
+  }
+  .instructions-list li:last-child { border-bottom: none; }
+  .instructions-list li strong { color: var(--text-primary); min-width: 180px; }
+  .instructions-disclaimer {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .instructions-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--brand-primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: opacity 0.15s;
+  }
+  .instructions-btn:hover { opacity: 0.85; }
 </style>
 </head>
 <body>
@@ -698,6 +771,26 @@
     <input type="password" class="pw-input" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkPassword()">
     <div class="pw-error" id="pw-error"></div>
     <button class="pw-btn" onclick="checkPassword()">Access Calculator</button>
+  </div>
+</div>
+
+<!-- ── INSTRUCTIONS OVERLAY ── -->
+<div id="instructions-gate" style="display:none;">
+  <div class="instructions-box">
+    <div class="instructions-title">How to use this calculator</div>
+    <div class="instructions-body">
+      <p>The inputs are pre-populated with industry benchmarks — they're a starting framework, not your numbers yet. Review each assumption together and update them to reflect your actual costs and contracts. When the inputs are accurate, the output becomes a business case you can take internally.</p>
+      <strong style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);">Key assumptions to validate</strong>
+      <ul class="instructions-list">
+        <li><strong>Unified commerce upside</strong> Benchmarked from Shopify merchant data — adjust if your customer behaviour differs</li>
+        <li><strong>Current POS costs</strong> Use your actual contract value, not list price</li>
+        <li><strong>Payment processing rates</strong> Enter your blended rate across all tender types</li>
+        <li><strong>Implementation costs</strong> Confirm with your SI or internal IT team</li>
+        <li><strong>Hardware</strong> Adjust based on existing infrastructure and planned rollout</li>
+      </ul>
+    </div>
+    <div class="instructions-disclaimer">Results are indicative. Final savings depend on your contracts, usage patterns, and how Shopify POS is implemented.</div>
+    <button class="instructions-btn" onclick="dismissInstructions()">Got it — let's start</button>
   </div>
 </div>
 
@@ -1300,6 +1393,9 @@
 (function() {
   if (sessionStorage.getItem('pos_tco_auth') === '1') {
     document.getElementById('pw-gate').style.display = 'none';
+    if (sessionStorage.getItem('pos_tco_instructions') !== '1') {
+      document.getElementById('instructions-gate').style.display = 'flex';
+    }
   } else {
     setTimeout(() => document.getElementById('pw-input').focus(), 50);
   }
@@ -1311,6 +1407,7 @@ function checkPassword() {
   if (input.value === 'hardybrothers') {
     sessionStorage.setItem('pos_tco_auth', '1');
     document.getElementById('pw-gate').style.display = 'none';
+    document.getElementById('instructions-gate').style.display = 'flex';
   } else {
     errorEl.textContent = 'Incorrect password. Please try again.';
     input.value = '';
@@ -1319,6 +1416,11 @@ function checkPassword() {
     input.classList.add('shake');
     input.focus();
   }
+}
+
+function dismissInstructions() {
+  sessionStorage.setItem('pos_tco_instructions', '1');
+  document.getElementById('instructions-gate').style.display = 'none';
 }
 
 // ── VERSION MANAGER ──
