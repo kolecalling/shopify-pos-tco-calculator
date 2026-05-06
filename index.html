@@ -1383,7 +1383,14 @@ function loadSelectedVersion() {
   const v = getVersions().find(v => v.id === id);
   if (!v) return;
   restoreInputs(v.inputs);
-  onVendorChange();
+  // Show vendor note without overwriting saved cost values
+  const vendor = document.getElementById('vendor').value;
+  const noteEl = document.getElementById('vendor_note');
+  if (vendorData[vendor]) {
+    noteEl.style.display = 'block';
+    noteEl.textContent = vendorData[vendor].note;
+  }
+  updateCalc();
 }
 
 function deleteSelectedVersion() {
