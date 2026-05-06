@@ -1858,12 +1858,7 @@ function updateCostChart(rows, totalCurr, totalShopify) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          align: 'end',
-          labels: { font: { size: 11 }, boxWidth: 12, padding: 12 }
-        },
+        legend: { display: false },
         tooltip: {
           callbacks: {
             label: (c) => ` ${c.dataset.label}: $${Math.round(c.parsed.y).toLocaleString('en-AU')}`
