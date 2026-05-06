@@ -1683,10 +1683,6 @@ function updateCalc() {
   const yr2Saving = annualSaving;
   const yr3Saving = annualSaving;
 
-  const cumulativeYr1 = yr1Saving;
-  const cumulativeYr2 = yr1Saving + yr2Saving;
-  const cumulativeYr3 = yr1Saving + yr2Saving + yr3Saving;
-
   // ── REVENUE UPSIDE ──
   const gmvLiftPct = parseFloat(document.getElementById('rev_gmv_lift').value) || 0;
   const bopisAdoption = parseFloat(document.getElementById('rev_bopis_adoption').value) || 0;
@@ -1702,11 +1698,16 @@ function updateCalc() {
   const totalRevUpside = revGmvLift + revBopis + revLostSales + revCrossChannel;
   const gmvUplift = revGmvLift;
 
-  const net3yr = cumulativeYr3 + (totalRevUpside * 3);
+  // Cumulative benefit = cost savings + revenue upside per year
+  const cumulativeYr1 = yr1Saving + totalRevUpside;
+  const cumulativeYr2 = yr1Saving + yr2Saving + (totalRevUpside * 2);
+  const cumulativeYr3 = yr1Saving + yr2Saving + yr3Saving + (totalRevUpside * 3);
+
+  const net3yr = cumulativeYr3;
 
   // ── UPDATE SUMMARY ──
   document.getElementById('out_3yr_net').textContent = fmt(net3yr);
-  document.getElementById('out_3yr_sub').textContent = `${fmt(cumulativeYr3)} savings + ${fmt(totalRevUpside * 3)} revenue upside`;
+  document.getElementById('out_3yr_sub').textContent = `${fmt(yr1Saving + yr2Saving + yr3Saving)} cost savings + ${fmt(totalRevUpside * 3)} revenue upside`;
   document.getElementById('out_yr1_savings').textContent = fmt(Math.max(0, yr1Saving));
   document.getElementById('out_yr1_sub').textContent = `after ${fmt(implCost + shopifyTraining + hardwareTotal)} upfront investment`;
   document.getElementById('out_rev_upside').textContent = fmt(totalRevUpside);
